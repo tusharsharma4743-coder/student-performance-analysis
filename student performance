@@ -1,0 +1,310 @@
+# Call the library
+library(dplyr)
+library(ggplot2)
+library(GGally)
+
+
+student_performance <- read.csv("C:/Term 4/CAP 482 DATA EXPLORATION AND PREPRATION/Jan2026/Project/student_performance_data.csv")
+
+# View Data set
+View(student_performance)
+
+# 1. What is the structure of the data set (number of rows, columns, and data types)?
+
+# Structure of Data Set
+str(student_performance)
+
+# Print column names
+names(student_performance)
+
+# First 6 rows
+head(student_performance)
+
+# Last 6 rows
+tail(student_performance)
+
+# Summary of data
+summary(student_performance)
+
+# Check dimensions
+dim(student_performance)
+
+# Convert gender to factor
+student_performance$gender <- as.factor(student_performance$gender)
+
+# 2. Find Missing values and handle
+
+# Check missing values
+colSums(is.na(student_performance))
+
+# 2.1. Filtering Data
+
+high_score <- student_performance %>%
+  filter(student_performance$overall_score > 80) %>% 
+  select(student_id, overall_score)
+
+high_score
+
+head(high_score)
+
+# 2.2 Top 10 students
+
+top_student <- student_performance %>% 
+  arrange(desc(overall_score)) %>% 
+  select(student_id, overall_score) %>% 
+  head(10)
+
+top_student
+
+# 2.3 Rank All the student
+
+rank_student <- student_performance %>% 
+  arrange(desc(overall_score)) %>% 
+  mutate(rank = row_number())
+
+rank_student  
+head(rank_student)
+
+# 2.4 Find the topper
+
+topper <- rank_student %>% 
+  filter(rank == 1) %>% 
+  select(student_id,overall_score,rank)
+topper
+
+# This Show the best performing student
+
+
+# 2.5 Show Top 10 best Performing Student
+
+top10_student <- rank_student %>% 
+  select(student_id,overall_score,rank) %>% 
+  head(10)
+
+top10_student
+
+# 2.6 Average of top10 student marks
+
+avg_score_top10 <- top10_student %>% 
+  summarise(mean(overall_score))
+avg_score_top10
+
+# The average score of the top 10 students was calculated to understand the performance level of the high achievers the result
+# Shows that top performing students have significantly higher scores compared to the overall dataset average
+
+# 3 Highest score and study time
+
+high_student <- student_performance %>% 
+  arrange(desc(overall_score)) %>% 
+  select(student_id,overall_score,study_hours_per_day) %>% 
+  mutate(group = "High")
+
+high_student
+head(high_student,10)
+
+# 3.1 Lowest score and study time 
+low_student <- student_performance %>% 
+  arrange(overall_score) %>% 
+  select(student_id,overall_score,study_hours_per_day) %>% 
+  mutate(group = "Low")
+
+low_student  
+head(low_student,10)
+
+ 
+# 4 Overall scores
+ggplot(student_performance, aes(x = overall_score)) +
+  geom_histogram(binwidth = 5, fill = "red", color = "black") +
+  labs(title = "Distribution of Scores", x = "Score", y = "Count")
+
+# This show how student scores are spread across different ranges most student are concentrated in the middle range, indicating average performance
+# while fewer student appear at the extreme high and low score this helps identify whether the overall performance is balanced or skewed
+
+
+# 5. Score categories
+
+student_performance$score_groups <- ifelse(student_performance$overall_score >= 75, "High",
+                                           ifelse(student_performance$overall_score >= 50, "Medium", "Low"))
+
+ggplot(student_performance, aes(x = score_groups, fill = score_groups)) +
+  geom_bar() +
+  labs(title = "Score Categorise", x = "Categories", y = "Count")
+
+# The Bar graph display the number of student in each performance category it clearly shows which group has the highest count 
+# this help in understanding whether most student are performing well, moderately, or poorly
+
+# 6. Student study hours vs score
+ggplot(student_performance, aes(x = study_hours_per_day, y = overall_score)) +
+  geom_point(color = "blue") +
+  labs(title = "Study Hours vs Score", x = "Study Hours", y = "Score")
+
+
+# 7 Find average by gender
+gender_avg = student_performance %>% 
+  group_by(gender) %>% 
+  summarise(avg_score = mean(overall_score))
+
+gender_avg
+
+ggplot(gender_avg, aes(x = gender, y = avg_score, fill = gender)) + 
+  geom_bar(stat = "identity") + 
+  labs(title = "Average Score by gender", x = "Gender", y = "Average Score")
+
+# 8. Study hours distribution 
+ggplot(student_performance, aes(x = study_hours_per_day)) +
+  geom_histogram(binwidth = 1, fill = "green", color = "black") +
+  labs(title = "Study hours distribution", x = "Hours", y = "Count")
+
+# 9. Top 10 student
+ggplot(top10_student, aes(x = reorder(student_id, overall_score), y = overall_score)) +
+  geom_bar(stat = "Identity", fill = "purple") +
+  coord_flip() +
+  labs(title = "Top 10 studnet", x = "Studnet", y = "Score")
+
+# 10. Sleep hours distribution
+
+ggplot(student_performance, aes(x = sleep_hours)) +
+  geom_histogram(binwidth = 1, fill = "green", color = "black") +
+  labs(title = "Sleep Hours Distribution", x = "Sleep Hours", y = "Count")
+
+# 11. Sleep hours vs score
+ggplot(student_performance, aes(x = sleep_hours, y = overall_score)) +
+  geom_point(color = "darkblue") +
+  labs(title = "Sleep vs Score", x = "Sleep Hours", y = "Score")
+
+# 12. Students with low mid-term score but high final score
+
+improved_student <- student_performance %>% 
+  filter(midterm_score < 50 & final_exam_score >= 70) %>% 
+  select(student_id, midterm_score, final_exam_score)
+
+improved_student
+head(improved_student, 50)
+
+
+# 12.1 Visualize of student improvement
+ggplot(student_performance, aes(x = midterm_score, y = final_exam_score)) +
+  geom_point(color = "green") +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(title = "Mid-term vs Final Scores",
+       x = "Mid-term Score",
+       y = "Final Score")
+
+# 13. Does assignment score strongly predict final exam performance
+
+ggplot(student_performance, aes(x = assignment_score, y = final_exam_score)) +
+  geom_point() +
+  labs(title = "Assignment vs Final Score")
+
+
+
+# 14. Attendance vs score
+
+ggplot(student_performance, aes(x = attendance_percentage, y = overall_score)) +
+  geom_point() +
+  labs(title = "Attendance vs Score")
+
+
+# 15 Does having internet access influence academic performance
+
+internet_avg <- student_performance %>% 
+  group_by(internet_access) %>% 
+  summarise(avg_score = mean(overall_score))
+
+ggplot(internet_avg, aes(x = internet_access, y = avg_score, fill = internet_access)) +
+  geom_bar(stat = "identity") + 
+  labs(title = "Internet Access vs Score")
+
+# 16 Find Correlation of the student study hours vs score
+cor(student_performance$study_hours_per_day,
+    student_performance$overall_score)
+
+# The correlation between study hours and overall score is -0.0036, which is very close 
+# to zero this indicate that there is no meaningful relationship between study hours and the student performance
+# Study quality is not equal to study hours
+
+# 17 Find correlation in between Attendance vs Score 
+cor(student_performance$attendance_percentage,
+    student_performance$overall_score,
+    use = "complete.obs")
+
+# The correlation between attendance and overall score is 0.1487 indicating a weak positive 
+# relationship this suggest that while higher attendance may slightly improve performance it is not
+# strong factor influencing student scores
+
+# 18 What relationships can be observed between study hours, attendance, sleep, and 
+# overall score using a pair plot
+
+ggpairs(student_performance[, c("study_hours_per_day",
+                 "attendance_percentage",
+                 "sleep_hours",
+                 "overall_score")])
+
+# The pair plot shows that study hours have the strongest positive relationship with overall score, while sleep hours have the weakest.
+# A pair plot was used to examine the relationships among study hours, attendance, sleep hours, and overall score. The scatter plots indicate a positive
+# relationship between study hours and overall score, suggesting that students who study more tend to achieve higher scores. Attendance percentage also shows
+# a moderate positive relationship with performance. However, sleep hours appear to have a weaker relationship with overall score, as the data points are more scattered.
+
+# 19 What is the proportion of students in each grade category
+
+pie(table(student_performance$grade),
+    main = "Grade Distribution")
+
+# 20 How does average score differ across different grade categories?
+
+avg_grade <- student_performance %>% 
+  group_by(grade) %>% 
+  summarise(avg_score = mean(overall_score))
+
+barplot(avg_grade$avg_score,
+        names.arg = avg_grade$grade,
+        main = "Average Score by Grade")
+
+# 21 How does attendance vary across different by gender
+
+avg_att <- student_performance %>%
+  group_by(gender) %>%
+  summarise(avg_attendance = mean(attendance_percentage))
+
+barplot(avg_att$avg_attendance,
+        names.arg = avg_att$gender,
+        main = "Attendance by Gender")
+
+# 22 How does the distribution of study hours differ between high and low scoring students
+
+student_performance$group <- ifelse(student_performance$overall_score > 80, "High", "Low")
+
+ggplot(student_performance, aes(x = group, y = study_hours_per_day)) +
+  geom_boxplot()
+
+# 23 How does sleep duration vary across different grade categories
+
+ggplot(student_performance, aes(x = grade, y = sleep_hours)) +
+  geom_boxplot()
+
+# 24 How well do study hours predict overall score using simple linear regression
+
+model2 <- lm(overall_score ~ study_hours_per_day, data = student_performance)
+summary(model2)
+
+# 25 Which variable among study hours, attendance, and sleep has the strongest effect in the regression model
+
+model3 <- lm(overall_score ~ study_hours_per_day +
+               attendance_percentage +
+               sleep_hours,
+             data = student_performance)
+
+summary(model3)
+
+# 26 What is the relationship between study hours per day and overall student performance
+
+ggplot(student_performance,
+       aes(x = study_hours_per_day, y = overall_score)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Linear Regression: Study Hours vs Score",
+       x = "Study Hours",
+       y = "Overall Score")
+
+# The scatter plot with a regression line shows a positive relationship between study hours and overall score
+# As study hours increase, the overall score also tends to increase. This suggests that students who study more generally achieve better academic performance
